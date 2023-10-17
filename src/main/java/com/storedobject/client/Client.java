@@ -12,6 +12,11 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * Client for the SO Platform Connector.
+ *
+ * @author Syam
+ */
 public class Client {
 
     private CompletableFuture<WebSocket> connecting;
@@ -21,22 +26,51 @@ public class Client {
     private String username = "";
     private String password = "", session = "";
     private final List<String> responses = new ArrayList<>();
-    private final List<ByteBuffer> buffers = new ArrayList<>();
     private static final String NOT_CONNECTED = "Not connected";
     private volatile BufferedStream currentBinary;
 
+    /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     */
     public Client(String host, String application) {
         this(host, application,true);
     }
 
+    /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param secured Whether secured connection (TLS encryption) is required or not.
+     */
     public Client(String host, String application, boolean secured) {
         this(host, application, 0, 0, secured);
     }
 
+    /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
+     */
     public Client(String host, String application, int deviceWidth, int deviceHeight) {
         this(host, application, deviceWidth, deviceHeight, true);
     }
 
+    /**
+     * Constructor.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
+     * @param secured Whether secured connection (TLS encryption) is required or not.
+     */
     public Client(String host, String application, int deviceWidth, int deviceHeight, boolean secured) {
         this.deviceWidth = deviceWidth <= 1 ? 1024 : deviceWidth;
         this.deviceHeight = deviceHeight <= 1 ? 768 : deviceHeight;
@@ -50,6 +84,13 @@ public class Client {
                 });
     }
 
+    /**
+     * Login method. This is the first method to be called.
+     *
+     * @param username Username.
+     * @param password Password.
+     * @return An empty string is returned if the process is successful. Otherwise, an error message is returned.
+     */
     public String login(String username, String password) {
         if(!this.username.isEmpty()) {
             return "Already logged in";
@@ -80,6 +121,9 @@ public class Client {
         return "Protocol error";
     }
 
+    /**
+     * Logout method. This should be invoked if the {@link Client} is no more required.
+     */
     public void logout() {
         command("logout", new HashMap<>());
         session = password = username = "";
@@ -87,6 +131,14 @@ public class Client {
         socket.abort();
     }
 
+    /**
+     * Change password.
+     *
+     * @param currentPassword Current password.
+     * @param newPassword New password.
+     * @return An empty string is returned if the password is changed successfully. Otherwise, an error message is
+     * returned.
+     */
     public String changePassword(String currentPassword, String newPassword) {
         if(this.username.isEmpty()) {
             return "Not logged in";
@@ -110,10 +162,39 @@ public class Client {
         return "Protocol error";
     }
 
+    /**
+     * Send a command and receive a response.
+     * <p>
+     *   The [attributes] should contain a map of the parameters. Please refer to the
+     *   <a href="https://github.com/syampillai/SOTraining/wiki/8900.-SO-Connector-API">SO Connector</a> documentation
+     *   for parameter details. Please note that [command] is passed as the first parameter and thus, it need
+     *   not be specified in the [attributes]. Also, "session" is not required because [Client] will
+     *   automatically add that.
+     * </p>
+     * @param command Command.
+     * @param attributes Attributes.
+     * @return Response as a JSON instance is returned.
+     */
     public JSON command(String command, Map<String, Object> attributes) {
         return command(command, attributes, false);
     }
 
+    /**
+     * Send a command and receive a response.
+     * <p>
+     *   The [attributes] should contain a map of the parameters. Please refer to the
+     *   <a href="https://github.com/syampillai/SOTraining/wiki/8900.-SO-Connector-API">SO Connector</a> documentation
+     *   for parameter details. Please note that [command] is passed as the first parameter and thus, it need
+     *   not be specified in the [attributes]. Also, "session" is not required because [Client] will
+     *   automatically add that. If the optional [preserveServerState] value is true,
+     *   the "continue" attribute will be set to preserve the server state
+     *   (See <a href="https://github.com/syampillai/SOTraining/wiki/8900.-SO-Connector-API#persisting-state-in-connector-logic">documentation</a>).
+     * </p>
+     * @param command Command.
+     * @param attributes Attributes.
+     * @param preserveServerState Whether preserve the server state or not.
+     * @return Response as a JSON instance is returned.
+     */
     public JSON command(String command, Map<String, Object> attributes, boolean preserveServerState) {
         return command(command, attributes, true, preserveServerState);
     }
@@ -195,10 +276,26 @@ public class Client {
         }
     }
 
+    /**
+     * Retrieve stream of data for the [name].
+     * <p>You should have got the [name] from a previous request.</p>
+     *
+     * @param name Name of the stream. (Mostly as a stringified Id).
+     * @return An instance of {@link  Data}. This contains an {@link InputStream} containing binary data if
+     * the {@link Data#error()} is <code>null</code>. {@link Data#mimeType()} provides the content-type.
+     */
     public Data  stream(String name) {
         return _stream("stream", name);
     }
 
+    /**
+     * Retrieve stream of data for the give file [name].
+     * <p>You should have got the [name] from a previous request or it could be the name of a file in the SO platform.</p>
+     *
+     * @param name Name of the stream.
+     * @return An instance of {@link  Data}. This contains an {@link InputStream} containing binary data if
+     * the {@link Data#error()} is <code>null</code>. {@link Data#mimeType()} provides the content-type.
+     */
     public Data file(String name) {
         return _stream("file", name);
     }
@@ -212,15 +309,26 @@ public class Client {
             } catch (InterruptedException ignored) {
             }
         }
+        currentBinary = new BufferedStream();
+        InputStream in = currentBinary;
         var r = command(command, map, false, false);
         if("ERROR".equals(r.getString("status"))) {
+            currentBinary = null;
             return new Data(null, null, r.getString("message"));
         }
         socket.request(1);
-        currentBinary = new BufferedStream();
-        return new Data(currentBinary, r.getString("type"), null);
+        return new Data(in, r.getString("type"), null);
     }
 
+    /**
+     * Structure to wrap an {@link InputStream} and its content-type. If the stream is absent (i.e., <code>null</code>),
+     * the {@link Data#error()} provides the real error message.
+     *
+     * @param stream An instance of an {@link InputStream}. Please make sure that the stream closed once data is read
+     *               or abandoned.
+     * @param mimeType Content-type.
+     * @param error Error if any.
+     */
     public record Data(InputStream stream, String mimeType, String error) {
     }
 
@@ -244,7 +352,9 @@ public class Client {
                 }
             } else {
                 text.append(data);
-                socket.request(1);
+                if(socket != null) {
+                    socket.request(1);
+                }
             }
             return null;
         }
@@ -257,9 +367,13 @@ public class Client {
                     if(last) {
                         currentBinary.completed = true;
                         currentBinary = null;
-                    } else {
+                    } else if (socket != null) {
                         socket.request(1);
                     }
+                }
+            } else {
+                if(socket != null) {
+                    socket.request(1);
                 }
             }
             return null;
