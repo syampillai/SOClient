@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
  *
  * @author Syam
  */
+@SuppressWarnings("BusyWait")
 public class Client {
 
     private CompletableFuture<WebSocket> connecting;
@@ -363,7 +364,9 @@ public class Client {
         public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
             if(currentBinary != null) {
                 synchronized (currentBinary.buffers) {
-                    currentBinary.buffers.add(data);
+                    if(!currentBinary.closed) {
+                        currentBinary.buffers.add(data);
+                    }
                     if(last) {
                         currentBinary.completed = true;
                         currentBinary = null;
@@ -396,6 +399,7 @@ public class Client {
         final List<ByteBuffer> buffers = new ArrayList<>();
         private ByteBuffer buffer;
         volatile boolean completed = false;
+        boolean closed = false;
 
         private void buf() {
             while (true) {
@@ -421,6 +425,9 @@ public class Client {
 
         @Override
         public int read() {
+            if(closed) {
+                return -1;
+            }
             if(buffer == null) {
                 buf();
             }
@@ -436,6 +443,9 @@ public class Client {
 
         @Override
         public int read(byte[] b, int off, int len) {
+            if(closed) {
+                return -1;
+            }
             Objects.checkFromIndexSize(off, len, b.length);
             if(len <= 0) {
                 return 0;
@@ -459,7 +469,7 @@ public class Client {
 
         @Override
         public void close() {
-            completed = true;
+            closed = true;
             buffer = null;
             buffers.clear();
         }
