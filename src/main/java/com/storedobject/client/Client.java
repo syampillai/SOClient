@@ -471,7 +471,9 @@ public class Client {
         public void close() {
             closed = true;
             buffer = null;
-            buffers.clear();
+            synchronized (buffers) {
+                buffers.clear();
+            }
         }
     }
 }
