@@ -1,5 +1,6 @@
 package com.storedobject.client;
 
+import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
 
 import java.io.IOException;
@@ -128,8 +129,10 @@ public class Client {
     public void logout() {
         command("logout", new HashMap<>());
         session = password = username = "";
-        socket.sendClose(0, "Logged out");
-        socket.abort();
+        if(socket != null) {
+            socket.sendClose(0, "Logged out");
+            socket.abort();
+        }
     }
 
     /**
@@ -200,6 +203,61 @@ public class Client {
         return command(command, attributes, true, preserveServerState);
     }
 
+    /**
+     * Upload new binary content to the server.
+     *
+     * @param mimeType Mime-type should be correctly specified because it will not be verified by the server.
+     * @param data Data to be uploaded.
+     * @return If successfully uploaded (Status == "OK"), the "id" attribute will contain the ID of the new content
+     * created.
+     */
+    public JSON upload(String mimeType, InputStream data) {
+        return upload(mimeType, data, null);
+    }
+
+    /**
+     * Upload some binary content to the server.
+     *
+     * @param mimeType Mime-type should be correctly specified because it will not be verified by the server.
+     * @param data Data to be uploaded.
+     * @param streamNameOrID If not blank or null, the corresponding content will be overwritten. It could be
+     *                       specified as the content-name or the ID of the content.
+     * @return If successfully uploaded (Status == "OK"), the "id" attribute will contain the ID of the content.
+     */
+    public JSON upload(String mimeType, InputStream data, String streamNameOrID) {
+        Map<String, Object> map = new HashMap<>();
+        if(streamNameOrID != null && !streamNameOrID.isBlank()) {
+            map.put("stream", streamNameOrID);
+        }
+        map.put("type", mimeType);
+        JSON json = command("upload", map);
+        if(!"OK".equals(json.getString("status"))) {
+            IO.close(data);
+            return json;
+        }
+        data = IO.get(data);
+        byte[] bytes;
+        try {
+            int r;
+            while (true) {
+                bytes = new byte[65536];
+                r = data.read(bytes);
+                if(r < 0) {
+                    break;
+                }
+                socket.sendBinary(ByteBuffer.wrap(bytes, 0, r), false);
+            }
+            socket.sendBinary(ByteBuffer.wrap(new byte[0]), true);
+        } catch (IOException e) {
+            socket.sendClose(100, "Error");
+            socket = null;
+            return error(e.getMessage());
+        } finally {
+            IO.close(data);
+        }
+        return readResponse();
+    }
+
     private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState) {
         if (username.isEmpty() || session.isEmpty()) {
             return error("Not logged in");
@@ -253,6 +311,10 @@ public class Client {
             return error("Connection closed");
         }
         socket.sendText(new JSON(map).toString(), true);
+        return readResponse();
+    }
+
+    private JSON readResponse() {
         socket.request(1);
         while (true) {
             synchronized (responses) {
@@ -301,9 +363,37 @@ public class Client {
         return _stream("file", name);
     }
 
+    /**
+     * Run a report and retrieve its output.
+     *
+     * @param logic Name of the report logic.
+     * @param parameters Parameters for the report.
+     * @return An instance of {@link  Data}. This contains an {@link InputStream} containing binary data if
+     * the {@link Data#error()} is <code>null</code>. {@link Data#mimeType()} provides the content-type.
+     */
+    public Data report(String logic, Map<String, Object> parameters) {
+        return _stream("report", logic, parameters);
+    }
+
+    /**
+     * Run a report and retrieve its output.
+     *
+     * @param logic Name of the report logic.
+     * @return An instance of {@link  Data}. This contains an {@link InputStream} containing binary data if
+     * the {@link Data#error()} is <code>null</code>. {@link Data#mimeType()} provides the content-type.
+     */
+    public Data report(String logic) {
+        return _stream("report", logic, new HashMap<>());
+    }
+
     private synchronized Data _stream(String command, String name) {
-        Map<String, Object> map = new HashMap<>();
-        map.put(command, name);
+        return _stream(command, name, new HashMap<>());
+    }
+
+    private synchronized Data _stream(String command, String name, Map<String, Object> map) {
+        if(name != null && !name.isBlank()) {
+            map.put(command, name);
+        }
         while (currentBinary != null) {
             try {
                 Thread.sleep(500);
