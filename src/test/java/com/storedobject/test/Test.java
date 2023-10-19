@@ -18,8 +18,8 @@ import java.util.Objects;
 public class Test {
 
     public static void main(String[] args) throws IOException {
-        Client client = new Client("0.engravsystems.com:8443", "jh");
-        String status = client.login("admin", "");
+        Client client = new Client("emqim12.engravsystems.com", "emqimtest");
+        String status = client.login("username", "password");
         if(status.isEmpty()) {
 
             System.out.println("Logged in successfully");
