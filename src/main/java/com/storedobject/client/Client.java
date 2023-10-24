@@ -372,7 +372,14 @@ public class Client {
      * the {@link Data#error()} is <code>null</code>. {@link Data#mimeType()} provides the content-type.
      */
     public Data report(String logic, Map<String, Object> parameters) {
-        return _stream("report", logic, parameters);
+        Map<String, Object> m;
+        if(parameters.get("parameters") != null) {
+            m = parameters;
+        } else {
+            m = new HashMap<>();
+            m.put("parameters", parameters);
+        }
+        return _stream("report", logic, m);
     }
 
     /**
