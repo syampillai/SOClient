@@ -321,7 +321,7 @@ public class Client {
                 if(!responses.isEmpty()) {
                     try {
                         return new JSON(responses.remove(0));
-                    } catch (IOException e) {
+                    } catch (Throwable e) {
                         return error("Invalid response");
                     }
                 }
