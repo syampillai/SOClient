@@ -124,4 +124,4 @@ SO platform wiki pages are available at [SO Platform Wiki](https://github.com/sy
 You may read the [SO Connector API](https://github.com/syampillai/SOTraining/wiki/8900.-SO-Connector-API)
 documentation to understand how you can communicate and exchange data with SO platform from your programs.
 
-If you are looking for a Datr/Flutter client, you can get it from [here](https://github.com/syampillai/SOClient).
+If you are looking for a Dart/Flutter client, you can get it from [here](https://pub.dev/packages/so).
