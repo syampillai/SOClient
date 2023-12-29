@@ -18,7 +18,13 @@ import java.util.Objects;
 public class Test {
 
     public static void main(String[] args) throws IOException {
-        Client client = new Client("emqim12.engravsystems.com", "emqimtest");
+        Client client;
+        client = new Client("emqim12.engravsystems.com", "emqimtest");
+        Throwable error = client.getError();
+        if(error != null) {
+            error.printStackTrace();
+            return;
+        }
         String status = client.login("username", "password");
         if(status.isEmpty()) {
 

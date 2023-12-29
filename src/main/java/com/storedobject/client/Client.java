@@ -2,6 +2,7 @@ package com.storedobject.client;
 
 import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
+import com.storedobject.common.SOException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +28,7 @@ public class Client {
     private final int deviceHeight;
     private String username = "";
     private String password = "", session = "";
+    private Throwable error = null;
     private final List<String> responses = new ArrayList<>();
     private static final String NOT_CONNECTED = "Not connected";
     private volatile BufferedStream currentBinary;
@@ -81,9 +83,29 @@ public class Client {
                         new Listener()).whenCompleteAsync((socket, error) -> {
                     if(error == null) {
                         this.socket = socket;
+                    } else {
+                        this.error = error;
                     }
                     this.connecting = null;
                 });
+    }
+
+    /**
+     * Get the current error if any.
+     *
+     * @return Error or null if in any error state.
+     */
+    public Throwable getError() {
+        while (socket == null) {
+            if(connecting == null) {
+                break;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        return error;
     }
 
     /**
@@ -327,6 +349,9 @@ public class Client {
                 }
             }
             if(socket == null) {
+                if(error != null && error instanceof SOException) {
+                    return error(error.getMessage());
+                }
                 return error(NOT_CONNECTED);
             }
             if(socket.isInputClosed()) {
@@ -481,12 +506,14 @@ public class Client {
 
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            error = new SOException("Connection closed, Reason: " + statusCode + " " + reason);
             Client.this.socket = null;
             return null;
         }
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
+            Client.this.error = error;
             Client.this.socket = null;
         }
     }
