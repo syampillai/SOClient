@@ -21,14 +21,14 @@ public class Test {
         Client client;
         client = new Client("emqim12.engravsystems.com", "emqimtest");
         Throwable error = client.getError();
-        if(error != null) {
+        if (error != null) {
             error.printStackTrace();
             return;
         }
         String status = client.login("username", "password");
-        if(status.isEmpty()) {
+        if (status.isEmpty()) {
 
-            System.out.println("Logged in successfully");
+            print("Logged in successfully");
 
             print("Checking content type (and saving the content to a file)");
             Client.Data data = client.file("Weight Schedule - Approval Letter");
@@ -36,7 +36,7 @@ public class Test {
                 print("Mime type of the file retrieved is: " + data.mimeType());
                 IO.copy(data.stream(), IO.getOutput("/home/syam/test.pdf"), true);
             } else {
-                print("Error retrieving file: " + data.error());
+                printError("Error retrieving file: " + data.error());
             }
 
             print("Run a report and save the output to a file");
@@ -45,7 +45,7 @@ public class Test {
                 print("Mime type of the report output is: " + data.mimeType());
                 IO.copy(data.stream(), IO.getOutput("/home/syam/report.pdf"), true);
             } else {
-                print("Error: " + data.error());
+                printError("Error: " + data.error());
             }
 
             print("Checking content type, without retrieving the content");
@@ -55,7 +55,7 @@ public class Test {
             print(json);
 
             print("Upload a file to replace the current content of the one retrieved now");
-            if("OK".equals(json.getString("status"))) {
+            if ("OK".equals(json.getString("status"))) {
                 print(client.upload("application/pdf",
                         IO.getInput("/home/syam/Documents/Georgia.pdf"),
                         "Weight Schedule - Approval Letter"));
@@ -89,12 +89,12 @@ public class Test {
 
             client.logout();
         } else {
-            print("Unable to login, error: " + status);
+            printError("Unable to login, error: " + status);
         }
     }
 
     private static void print(Object anything) {
-        if(anything instanceof JSON result) {
+        if (anything instanceof JSON result) {
             if ("OK".equals(result.getString("status"))) {
                 JSON json = result.get("data");
                 System.out.println(Objects.requireNonNullElse(json, result).toPrettyString());
@@ -105,5 +105,10 @@ public class Test {
             System.out.println();
             System.out.println(anything);
         }
+    }
+
+    private static void printError(Object anything) {
+        System.err.println();
+        System.err.println(anything);
     }
 }

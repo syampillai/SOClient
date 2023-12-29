@@ -11,8 +11,9 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Client for the SO Platform Connector.
@@ -22,7 +23,8 @@ import java.util.concurrent.CompletionStage;
 @SuppressWarnings("BusyWait")
 public class Client {
 
-    private CompletableFuture<WebSocket> connecting;
+    private final URI uri;
+    private CountDownLatch connectionLatch, textLatch, binaryLatch, binaryFragmentLatch;
     private WebSocket socket;
     private final int deviceWidth;
     private final int deviceHeight;
@@ -78,15 +80,36 @@ public class Client {
     public Client(String host, String application, int deviceWidth, int deviceHeight, boolean secured) {
         this.deviceWidth = deviceWidth <= 1 ? 1024 : deviceWidth;
         this.deviceHeight = deviceHeight <= 1 ? 768 : deviceHeight;
-        connecting = HttpClient.newHttpClient().newWebSocketBuilder()
-                .buildAsync(URI.create("ws" + (secured ? "s" : "") + "://" + host + "/" + application + "/CONNECTORWS"),
-                        new Listener()).whenCompleteAsync((socket, error) -> {
+        this.uri = URI.create("ws" + (secured ? "s" : "") + "://" + host + "/" + application + "/CONNECTORWS");
+        reconnect();
+    }
+
+    /**
+     * Reconnect the client.
+     * <p>Note: This will reset everything. However, it knows how to re-login to the server if required.</p>
+     */
+    public void reconnect() {
+        WebSocket ws = this.socket;
+        this.socket = null;
+        responses.clear();
+        if(currentBinary != null) {
+            currentBinary.close();
+            currentBinary = null;
+        }
+        error = null;
+        if(ws != null) {
+            ws.sendClose(102, "Reconnecting");
+        }
+        connectionLatch = new CountDownLatch(1);
+        HttpClient.newHttpClient().newWebSocketBuilder()
+                .buildAsync(uri, new Listener()).whenCompleteAsync((socket, error) -> {
                     if(error == null) {
                         this.socket = socket;
                     } else {
                         this.error = error;
                     }
-                    this.connecting = null;
+                    connectionLatch.countDown();
+                    connectionLatch = null;
                 });
     }
 
@@ -96,12 +119,9 @@ public class Client {
      * @return Error or null if in any error state.
      */
     public Throwable getError() {
-        while (socket == null) {
-            if(connecting == null) {
-                break;
-            }
+        if(connectionLatch != null) {
             try {
-                Thread.sleep(500);
+                connectionLatch.await();
             } catch (InterruptedException ignored) {
             }
         }
@@ -320,16 +340,13 @@ public class Client {
     }
 
     private synchronized JSON post(Map<String, Object> map) {
-        while (socket == null) {
-            if(connecting == null) {
-                return error(NOT_CONNECTED);
-            }
+        if(connectionLatch != null) {
             try {
-                Thread.sleep(500);
+                connectionLatch.await();
             } catch (InterruptedException ignored) {
             }
         }
-        if(socket.isOutputClosed()) {
+        if(socket == null || socket.isOutputClosed()) {
             return error("Connection closed");
         }
         socket.sendText(new JSON(map).toString(), true);
@@ -337,6 +354,7 @@ public class Client {
     }
 
     private JSON readResponse() {
+        textLatch = new CountDownLatch(1);
         socket.request(1);
         while (true) {
             synchronized (responses) {
@@ -358,7 +376,7 @@ public class Client {
                 return error("Connection closed");
             }
             try {
-                Thread.sleep(500);
+                textLatch.await();
             } catch (InterruptedException ignored) {
             }
         }
@@ -428,7 +446,11 @@ public class Client {
         }
         while (currentBinary != null) {
             try {
-                Thread.sleep(500);
+                if(binaryLatch == null) {
+                    Thread.sleep(500);
+                } else {
+                    binaryLatch.await();
+                }
             } catch (InterruptedException ignored) {
             }
         }
@@ -439,6 +461,8 @@ public class Client {
             currentBinary = null;
             return new Data(null, null, r.getString("message"));
         }
+        binaryLatch = new CountDownLatch(1);
+        binaryFragmentLatch = new CountDownLatch(1);
         socket.request(1);
         return new Data(in, r.getString("type"), null);
     }
@@ -461,6 +485,9 @@ public class Client {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+            if(webSocket != socket) {
+                return null;
+            }
             if(last) {
                 String s;
                 if(!text.isEmpty()) {
@@ -473,6 +500,9 @@ public class Client {
                 synchronized (responses) {
                     responses.add(s);
                 }
+                if(textLatch != null) {
+                    textLatch.countDown();
+                }
             } else {
                 text.append(data);
                 if(socket != null) {
@@ -484,6 +514,9 @@ public class Client {
 
         @Override
         public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+            if(webSocket != socket) {
+                return null;
+            }
             if(currentBinary != null) {
                 synchronized (currentBinary.buffers) {
                     if(!currentBinary.closed) {
@@ -492,9 +525,13 @@ public class Client {
                     if(last) {
                         currentBinary.completed = true;
                         currentBinary = null;
+                        if(binaryLatch != null) {
+                            binaryLatch.countDown();
+                        }
                     } else if (socket != null) {
                         socket.request(1);
                     }
+                    binaryFragmentLatch.countDown();
                 }
             } else {
                 if(socket != null) {
@@ -506,16 +543,33 @@ public class Client {
 
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            if(webSocket != socket) {
+                return null;
+            }
             error = new SOException("Connection closed, Reason: " + statusCode + " " + reason);
-            Client.this.socket = null;
+            close();
             return null;
         }
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
+            if(webSocket != socket) {
+                return;
+            }
             Client.this.error = error;
-            Client.this.socket = null;
+            close();
         }
+
+        private void close() {
+            Client.this.socket = null;
+            if(textLatch != null) {
+                textLatch.countDown();
+            }
+            if(binaryLatch != null) {
+                binaryLatch.countDown();
+            }
+        }
+
     }
 
     private class BufferedStream extends InputStream {
@@ -541,7 +595,11 @@ public class Client {
                     return;
                 }
                 try {
-                    Thread.sleep(500);
+                    if(binaryFragmentLatch.await(1000, TimeUnit.MILLISECONDS)) {
+                        if(binaryLatch.getCount() != 0) {
+                            binaryFragmentLatch = new CountDownLatch(1);
+                        }
+                    }
                 } catch (InterruptedException ignored) {
                 }
             }
