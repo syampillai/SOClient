@@ -25,7 +25,7 @@ public class Test {
             error.printStackTrace();
             return;
         }
-        String status = client.login("username", "password");
+        String status = client.login("syam", "Welcome2System$");
         if (status.isEmpty()) {
 
             print("Logged in successfully");
@@ -90,6 +90,7 @@ public class Test {
             client.logout();
         } else {
             printError("Unable to login, error: " + status);
+            client.close();
         }
     }
 

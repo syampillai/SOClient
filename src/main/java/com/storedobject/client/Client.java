@@ -32,8 +32,12 @@ public class Client {
     private String password = "", session = "";
     private Throwable error = null;
     private final List<String> responses = new ArrayList<>();
-    private static final String NOT_CONNECTED = "Not connected";
+    /**
+     * Error message when not connected.
+     */
+    public static final String NOT_CONNECTED = "Not connected";
     private volatile BufferedStream currentBinary;
+    private final Timer pingTimer;
 
     /**
      * Constructor that defines a secured connection.
@@ -82,6 +86,19 @@ public class Client {
         this.deviceHeight = deviceHeight <= 1 ? 768 : deviceHeight;
         this.uri = URI.create("ws" + (secured ? "s" : "") + "://" + host + "/" + application + "/CONNECTORWS");
         reconnect();
+        pingTimer = new Timer();
+        pingTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                ping();
+            }
+        }, 0, 120000);
+    }
+
+    private void ping() {
+        if(socket != null) {
+            socket.sendPing(ByteBuffer.wrap(new byte[] { 1 }));
+        }
     }
 
     /**
@@ -89,6 +106,9 @@ public class Client {
      * <p>Note: This will reset everything. However, it knows how to re-login to the server if required.</p>
      */
     public void reconnect() {
+        if(connectionLatch != null) { // Connection in progress
+            return;
+        }
         WebSocket ws = this.socket;
         this.socket = null;
         responses.clear();
@@ -167,14 +187,25 @@ public class Client {
 
     /**
      * Logout method. This should be invoked if the {@link Client} is no more required.
+     * If you try to use this instance afterward, it may give unexpected results.
      */
     public void logout() {
+        pingTimer.cancel();
         command("logout", new HashMap<>());
         session = password = username = "";
         if(socket != null) {
             socket.sendClose(0, "Logged out");
             socket.abort();
         }
+    }
+
+    /**
+     * Close this instance. This should be invoked if the {@link Client} is no more required.
+     * If you try to use this instance afterward, it may give unexpected results.
+     * <p>Note: This is equivalent to the {@link #logout()} method.</p>
+     */
+    public void close() {
+        logout();
     }
 
     /**
@@ -305,7 +336,7 @@ public class Client {
             return error("Not logged in");
         }
         if(socket == null) {
-            return error("Not connected");
+            return error(NOT_CONNECTED);
         }
         if(checkCommand) {
             switch (command) {
@@ -569,7 +600,6 @@ public class Client {
                 binaryLatch.countDown();
             }
         }
-
     }
 
     private class BufferedStream extends InputStream {
