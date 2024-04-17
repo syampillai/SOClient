@@ -1,5 +1,6 @@
 package com.storedobject.client;
 
+import com.storedobject.common.Fault;
 import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
 import com.storedobject.common.SOException;
@@ -361,6 +362,23 @@ public class Client {
             return command(command, attributes, false);
         }
         return r;
+    }
+
+    /**
+     * Extract fault if any from the given JSON object.
+     *
+     * @param json JSON object from which fault needs to be extracted.
+     * @return Fault instance or null.
+     */
+    public static Fault getFault(JSON json) {
+        Number errorCode = json.getNumber("errorCode");
+        if(errorCode != null) {
+            String message = json.getString("message");
+            if(message != null) {
+                return new Fault(errorCode.intValue(), message);
+            }
+        }
+        return null;
     }
 
     private JSON error(String error) {
