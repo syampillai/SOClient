@@ -385,6 +385,7 @@ public class Client {
         Map<String, Object> map = new HashMap<>();
         map.put("status", "ERROR");
         map.put("message", error);
+        map.put("errorCode", Integer.MIN_VALUE);
         return new JSON(map);
     }
 
