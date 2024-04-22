@@ -325,7 +325,7 @@ public class Client {
         } catch (IOException e) {
             socket.sendClose(100, "Error");
             socket = null;
-            return error(e.getMessage());
+            return error(99, e.getMessage());
         } finally {
             IO.close(data);
         }
@@ -334,15 +334,15 @@ public class Client {
 
     private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState) {
         if (username.isEmpty() || session.isEmpty()) {
-            return error("Not logged in");
+            return error(0, "Not logged in");
         }
         if(socket == null) {
-            return error(NOT_CONNECTED);
+            return error(1, NOT_CONNECTED);
         }
         if(checkCommand) {
             switch (command) {
                 case "file", "stream":
-                    return error("Invalid command");
+                    return error(2, "Invalid command");
             }
         }
         attributes.put("session", session);
@@ -357,7 +357,7 @@ public class Client {
             username = "";
             var status = login(u, password);
             if (!status.isEmpty()) {
-                return  error("Can't re-login. Reason: " + status);
+                return  error(3,"Can't re-login. Reason: " + status);
             }
             return command(command, attributes, false);
         }
@@ -381,11 +381,11 @@ public class Client {
         return null;
     }
 
-    private JSON error(String error) {
+    private JSON error(int code, String error) {
         Map<String, Object> map = new HashMap<>();
         map.put("status", "ERROR");
         map.put("message", error);
-        map.put("errorCode", Integer.MIN_VALUE);
+        map.put("errorCode", 900000 + code);
         return new JSON(map);
     }
 
@@ -397,7 +397,7 @@ public class Client {
             }
         }
         if(socket == null || socket.isOutputClosed()) {
-            return error("Connection closed");
+            return error(5,"Connection closed");
         }
         socket.sendText(new JSON(map).toString(), true);
         return readResponse();
@@ -412,18 +412,18 @@ public class Client {
                     try {
                         return new JSON(responses.remove(0));
                     } catch (Throwable e) {
-                        return error("Invalid response");
+                        return error(6,"Invalid response");
                     }
                 }
             }
             if(socket == null) {
                 if(error != null && error instanceof SOException) {
-                    return error(error.getMessage());
+                    return error(99, error.getMessage());
                 }
-                return error(NOT_CONNECTED);
+                return error(1, NOT_CONNECTED);
             }
             if(socket.isInputClosed()) {
-                return error("Connection closed");
+                return error(5,"Connection closed");
             }
             try {
                 textLatch.await();
