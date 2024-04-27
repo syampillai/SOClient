@@ -93,7 +93,7 @@ public class Client {
             public void run() {
                 ping();
             }
-        }, 0, 120000);
+        }, 0, 29000);
     }
 
     private void ping() {
