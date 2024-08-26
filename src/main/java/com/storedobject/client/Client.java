@@ -39,6 +39,7 @@ public class Client {
     public static final String NOT_CONNECTED = "Not connected";
     private volatile BufferedStream currentBinary;
     private final Timer pingTimer;
+    private long lastCommandAt = 0;
 
     /**
      * Constructor that defines a secured connection.
@@ -97,8 +98,9 @@ public class Client {
     }
 
     private void ping() {
-        if(socket != null) {
+        if(socket != null && (System.currentTimeMillis() - lastCommandAt) >= 29000) {
             socket.sendPing(ByteBuffer.wrap(new byte[] { 1 }));
+            command("ping", new HashMap<>());
         }
     }
 
@@ -319,8 +321,10 @@ public class Client {
                 if(r < 0) {
                     break;
                 }
+                lastCommandAt = System.currentTimeMillis();
                 socket.sendBinary(ByteBuffer.wrap(bytes, 0, r), false);
             }
+            lastCommandAt = System.currentTimeMillis();
             socket.sendBinary(ByteBuffer.wrap(new byte[0]), true);
         } catch (IOException e) {
             socket.sendClose(100, "Error");
@@ -399,6 +403,7 @@ public class Client {
         if(socket == null || socket.isOutputClosed()) {
             return error(5,"Connection closed");
         }
+        lastCommandAt = System.currentTimeMillis();
         socket.sendText(new JSON(map).toString(), true);
         return readResponse();
     }
