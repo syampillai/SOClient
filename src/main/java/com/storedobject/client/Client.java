@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
@@ -125,6 +126,7 @@ public class Client {
         }
         connectionLatch = new CountDownLatch(1);
         HttpClient.newHttpClient().newWebSocketBuilder()
+                .connectTimeout(Duration.ofMinutes(10))
                 .buildAsync(uri, new Listener()).whenCompleteAsync((socket, error) -> {
                     if(error == null) {
                         this.socket = socket;
