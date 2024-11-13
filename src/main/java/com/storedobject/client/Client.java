@@ -339,7 +339,7 @@ public class Client {
     }
 
     private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState) {
-        if (username.isEmpty() || session.isEmpty()) {
+        if (!"register".equals(command) && (username.isEmpty() || session.isEmpty())) {
             return error(0, "Not logged in");
         }
         if(socket == null) {
@@ -351,7 +351,9 @@ public class Client {
                     return error(2, "Invalid command");
             }
         }
-        attributes.put("session", session);
+        if(!session.isEmpty()) {
+            attributes.put("session", session);
+        }
         attributes.put("command", command);
         if (preserveServerState) {
             attributes.put("continue", true);
