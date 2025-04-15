@@ -19,7 +19,7 @@ public class Test {
 
     public static void main(String[] args) throws IOException {
         Client client;
-        client = new Client("emqim12.engravsystems.com", "emqimtest");
+        client = new Client("storedobject.com", "training");
         Throwable error = client.getError();
         if (error != null) {
             error.printStackTrace();

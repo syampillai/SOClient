@@ -21,5 +21,10 @@
       <option name="name" value="JBoss Community repository" />
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="so-maven" />
+      <option name="name" value="so-maven" />
+      <option name="url" value="https://storedobject.com/maven" />
+    </remote-repository>
   </component>
 </project>

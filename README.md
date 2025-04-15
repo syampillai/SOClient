@@ -11,7 +11,24 @@ application and the logic executes when the menu option is selected by the end-u
 This library can be used to connect to SO platform from external Java applications.
 ## Getting started
 
-You may include this library in your project. Please [see here](https://jitpack.io/#syampillai/SOClient).
+Include this in the dependencies section of your POM file:
+```xml
+  <dependency>
+    <groupId>com.storedobject</groupId>
+    <artifactId>so-client</artifactId>
+    <version>3.0.0</version>
+    <relativePath/>
+  </dependency>
+```
+Also, include this in your repositories section:
+```xml
+<repositories>
+    <repository>
+        <id>so-maven</id>
+        <url>https://storedobject.com/maven</url>
+    </repository>
+</repositories>
+```
 
 ## Usage
 
@@ -34,7 +51,7 @@ import java.util.Objects;
 public class Test {
 
     public static void main(String[] args) throws IOException {
-        Client client = new Client("emqim12.engravsystems.com", "emqimtest");
+        Client client = new Client("storedobject.com", "training");
         String status = client.login("username", "password");
         if(status.isEmpty()) {
 
@@ -50,7 +67,7 @@ public class Test {
             }
 
             print("Run a report and save the output to a file");
-            data = client.report("com.engravsystems.emqim.operations.logic.TestReport");
+            data = client.report("com.storedobject.training.test.logic.TestReport");
             if (data.error() == null) {
                 print("Mime type of the report output is: " + data.mimeType());
                 IO.copy(data.stream(), IO.getOutput("/home/syam/report.pdf"), true);

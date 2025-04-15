@@ -4,15 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+  <parent>
+    <groupId>com.storedobject</groupId>
+    <artifactId>so-pom21</artifactId>
+    <version>1.1.5</version>
+  </parent>
+
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <so-common-version>4.8.3</so-common-version>
+    <so-common-version>6.0.0</so-common-version>
   </properties>
 
-  <groupId>com.storedobject</groupId>
   <artifactId>so-client</artifactId>
-  <version>2.0.5</version>
+  <version>3.0.0</version>
   <packaging>jar</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>
@@ -22,79 +25,33 @@
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
 
   <developers>
     <developer>
+      <id>syampillai</id>
       <name>Syam Pillai</name>
-      <email>syam@engravgroup.com</email>
-      <organization>Syam Pillai</organization>
-      <organizationUrl>https://github.com/syampillai</organizationUrl>
+      <email>syam.s.pillai@gmail.com</email>
+      <url>https://github.com/syampillai</url>
     </developer>
   </developers>
 
-  <distributionManagement>
-    <repository>
-      <id>github</id>
-      <name>Syam Pillai</name>
-      <url>https://maven.pkg.github.com/syampillai/SOCommon</url>
-    </repository>
-  </distributionManagement>
-
   <repositories>
     <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
+      <id>so-maven</id>
+      <url>https://storedobject.com/maven</url>
     </repository>
   </repositories>
 
   <dependencies>
-
-    <!-- SO Common (from jitpack) -->
+    <!-- SO Common -->
     <dependency>
-      <groupId>com.github.syampillai</groupId>
-      <artifactId>SOCommon</artifactId>
-      <version>${so-common-version}</version>
+      <groupId>com.storedobject</groupId>
+      <artifactId>so-common</artifactId>
+      <version>6.0.0</version>
     </dependency>
-
   </dependencies>
-
-  <build>
-    <plugins>
-
-      <!-- Compile -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
-      </plugin>
-
-      <!-- Create jar file -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>lib/</classpathPrefix>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-
-      <!-- Resources plug-in -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>3.3.1</version>
-      </plugin>
-
-    </plugins>
-  </build>
-
 </project>
