@@ -419,7 +419,7 @@ public class Client {
             synchronized (responses) {
                 if(!responses.isEmpty()) {
                     try {
-                        return new JSON(responses.remove(0));
+                        return new JSON(responses.removeFirst());
                     } catch (Throwable e) {
                         return error(6,"Invalid response");
                     }
@@ -641,7 +641,7 @@ public class Client {
             while (true) {
                 synchronized (buffers) {
                     if(!buffers.isEmpty()) {
-                        buffer = buffers.remove(0);
+                        buffer = buffers.removeFirst();
                         if(buffer.hasRemaining()) {
                             return;
                         }
