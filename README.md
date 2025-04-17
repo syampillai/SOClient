@@ -17,7 +17,6 @@ Include this in the dependencies section of your POM file:
     <groupId>com.storedobject</groupId>
     <artifactId>so-client</artifactId>
     <version>3.0.0</version>
-    <relativePath/>
   </dependency>
 ```
 Also, include this in your repositories section:
