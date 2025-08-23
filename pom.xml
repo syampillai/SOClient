@@ -7,15 +7,15 @@
   <parent>
     <groupId>com.storedobject</groupId>
     <artifactId>so-pom21</artifactId>
-    <version>1.1.5</version>
+    <version>1.1.8</version>
   </parent>
 
   <properties>
-    <so-common-version>6.0.0</so-common-version>
+    <so-common-version>6.0.4</so-common-version>
   </properties>
 
   <artifactId>so-client</artifactId>
-  <version>3.0.0</version>
+  <version>3.1.0</version>
   <packaging>jar</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>

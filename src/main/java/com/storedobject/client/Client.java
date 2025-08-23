@@ -32,6 +32,7 @@ public class Client {
     private final int deviceHeight;
     private String username = "";
     private String password = "", session = "";
+    private final String apiKey;
     private Throwable error = null;
     private final List<String> responses = new ArrayList<>();
     /**
@@ -57,10 +58,33 @@ public class Client {
      *
      * @param host Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
-     * @param secured Whether secured connection (TLS encryption) is required or not.
+     * @param apiKey API key (if any).
+     */
+    public Client(String host, String application, String apiKey) {
+        this(host, application, apiKey,true);
+    }
+
+    /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param secured Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, boolean secured) {
         this(host, application, 0, 0, secured);
+    }
+
+    /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param apiKey API key (if any).
+     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     */
+    public Client(String host, String application, String apiKey, boolean secured) {
+        this(host, application, apiKey, 0, 0, secured);
     }
 
     /**
@@ -76,15 +100,43 @@ public class Client {
     }
 
     /**
+     * Constructor that defines a secured connection.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param apiKey API key (if any).
+     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
+     */
+    public Client(String host, String application, String apiKey, int deviceWidth, int deviceHeight) {
+        this(host, application, apiKey, deviceWidth, deviceHeight, true);
+    }
+
+    /**
      * Constructor.
      *
      * @param host Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
      * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
      * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
-     * @param secured Whether secured connection (TLS encryption) is required or not.
+     * @param secured Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, int deviceWidth, int deviceHeight, boolean secured) {
+        this(host, application, null, deviceWidth, deviceHeight, secured);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param host Host where the SO is hosted.
+     * @param application Name of the application (typically, the database name).
+     * @param apiKey API key (if any).
+     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
+     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     */
+    public Client(String host, String application, String apiKey, int deviceWidth, int deviceHeight, boolean secured) {
+        this.apiKey = apiKey != null && !apiKey.isBlank() ? apiKey : null;
         this.deviceWidth = deviceWidth <= 1 ? 1024 : deviceWidth;
         this.deviceHeight = deviceHeight <= 1 ? 768 : deviceHeight;
         this.uri = URI.create("ws" + (secured ? "s" : "") + "://" + host + "/" + application + "/CONNECTORWS");
@@ -107,7 +159,7 @@ public class Client {
 
     /**
      * Reconnect the client.
-     * <p>Note: This will reset everything. However, it knows how to re-login to the server if required.</p>
+     * <p>Note: This will reset everything. However, it knows how to re-log in to the server if required.</p>
      */
     public void reconnect() {
         if(connectionLatch != null) { // Connection in progress
@@ -125,10 +177,13 @@ public class Client {
             ws.sendClose(102, "Reconnecting");
         }
         connectionLatch = new CountDownLatch(1);
-        HttpClient.newHttpClient().newWebSocketBuilder()
-                .connectTimeout(Duration.ofMinutes(10))
-                .buildAsync(uri, new Listener()).whenCompleteAsync((socket, error) -> {
-                    if(error == null) {
+        var builder = HttpClient.newHttpClient().newWebSocketBuilder()
+                .connectTimeout(Duration.ofMinutes(10));
+        if (apiKey != null) {
+            builder.header("Authorization", "Bearer " + apiKey);
+        }
+        builder.buildAsync(uri, new Listener()).whenCompleteAsync((socket, error) -> {
+            if(error == null) {
                         this.socket = socket;
                     } else {
                         this.error = error;
@@ -139,7 +194,7 @@ public class Client {
     }
 
     /**
-     * Get the current error if any.
+     * Get the current error, if any.
      *
      * @return Error or null if in any error state.
      */
@@ -442,7 +497,7 @@ public class Client {
     }
 
     /**
-     * Retrieve stream of data for the [name].
+     * Retrieve the stream of data for the [name].
      * <p>You should have got the [name] from a previous request.</p>
      *
      * @param name Name of the stream. (Mostly as a stringified Id).
@@ -454,8 +509,8 @@ public class Client {
     }
 
     /**
-     * Retrieve stream of data for the give file [name].
-     * <p>You should have got the [name] from a previous request or it could be the name of a file in the SO platform.</p>
+     * Retrieve the stream of data for the give file [name].
+     * <p>You should have got the [name] from a previous request, or it could be the name of a file in the SO platform.</p>
      *
      * @param name Name of the stream.
      * @return An instance of {@link  Data}. This contains an {@link InputStream} containing binary data if
@@ -530,7 +585,7 @@ public class Client {
      * Structure to wrap an {@link InputStream} and its content-type. If the stream is absent (i.e., <code>null</code>),
      * the {@link Data#error()} provides the real error message.
      *
-     * @param stream An instance of an {@link InputStream}. Please make sure that the stream closed once data is read
+     * @param stream An instance of an {@link InputStream}. Please make sure that the stream is closed once data is read
      *               or abandoned.
      * @param mimeType Content-type.
      * @param error Error if any.
