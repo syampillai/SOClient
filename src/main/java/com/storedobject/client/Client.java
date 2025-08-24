@@ -46,30 +46,30 @@ public class Client {
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
+     * @param host        Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
      */
     public Client(String host, String application) {
-        this(host, application,true);
+        this(host, application, true);
     }
 
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
+     * @param host        Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
-     * @param apiKey API key (if any).
+     * @param apiKey      API key (if any).
      */
     public Client(String host, String application, String apiKey) {
-        this(host, application, apiKey,true);
+        this(host, application, apiKey, true);
     }
 
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
+     * @param host        Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
-     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     * @param secured     Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, boolean secured) {
         this(host, application, 0, 0, secured);
@@ -78,10 +78,10 @@ public class Client {
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
+     * @param host        Host where the SO is hosted.
      * @param application Name of the application (typically, the database name).
-     * @param apiKey API key (if any).
-     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     * @param apiKey      API key (if any).
+     * @param secured     Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, String apiKey, boolean secured) {
         this(host, application, apiKey, 0, 0, secured);
@@ -90,9 +90,9 @@ public class Client {
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
-     * @param application Name of the application (typically, the database name).
-     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param host         Host where the SO is hosted.
+     * @param application  Name of the application (typically, the database name).
+     * @param deviceWidth  Device width (applicable if you are connecting from a device that has a view-width).
      * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
      */
     public Client(String host, String application, int deviceWidth, int deviceHeight) {
@@ -102,10 +102,10 @@ public class Client {
     /**
      * Constructor that defines a secured connection.
      *
-     * @param host Host where the SO is hosted.
-     * @param application Name of the application (typically, the database name).
-     * @param apiKey API key (if any).
-     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param host         Host where the SO is hosted.
+     * @param application  Name of the application (typically, the database name).
+     * @param apiKey       API key (if any).
+     * @param deviceWidth  Device width (applicable if you are connecting from a device that has a view-width).
      * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
      */
     public Client(String host, String application, String apiKey, int deviceWidth, int deviceHeight) {
@@ -115,11 +115,11 @@ public class Client {
     /**
      * Constructor.
      *
-     * @param host Host where the SO is hosted.
-     * @param application Name of the application (typically, the database name).
-     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param host         Host where the SO is hosted.
+     * @param application  Name of the application (typically, the database name).
+     * @param deviceWidth  Device width (applicable if you are connecting from a device that has a view-width).
      * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
-     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     * @param secured      Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, int deviceWidth, int deviceHeight, boolean secured) {
         this(host, application, null, deviceWidth, deviceHeight, secured);
@@ -128,12 +128,12 @@ public class Client {
     /**
      * Constructor.
      *
-     * @param host Host where the SO is hosted.
-     * @param application Name of the application (typically, the database name).
-     * @param apiKey API key (if any).
-     * @param deviceWidth Device width (applicable if you are connecting from a device that has a view-width).
+     * @param host         Host where the SO is hosted.
+     * @param application  Name of the application (typically, the database name).
+     * @param apiKey       API key (if any).
+     * @param deviceWidth  Device width (applicable if you are connecting from a device that has a view-width).
      * @param deviceHeight Device height (applicable if you are connecting from a device that has a view-height).
-     * @param secured Whether a secured connection (TLS encryption) is required or not.
+     * @param secured      Whether a secured connection (TLS encryption) is required or not.
      */
     public Client(String host, String application, String apiKey, int deviceWidth, int deviceHeight, boolean secured) {
         this.apiKey = apiKey != null && !apiKey.isBlank() ? apiKey : null;
@@ -151,8 +151,8 @@ public class Client {
     }
 
     private void ping() {
-        if(socket != null && (System.currentTimeMillis() - lastCommandAt) >= 29000) {
-            socket.sendPing(ByteBuffer.wrap(new byte[] { 1 }));
+        if (socket != null && (System.currentTimeMillis() - lastCommandAt) >= 29000) {
+            socket.sendPing(ByteBuffer.wrap(new byte[]{1}));
             command("ping", new HashMap<>());
         }
     }
@@ -162,18 +162,18 @@ public class Client {
      * <p>Note: This will reset everything. However, it knows how to re-log in to the server if required.</p>
      */
     public void reconnect() {
-        if(connectionLatch != null) { // Connection in progress
+        if (connectionLatch != null) { // Connection in progress
             return;
         }
         WebSocket ws = this.socket;
         this.socket = null;
         responses.clear();
-        if(currentBinary != null) {
+        if (currentBinary != null) {
             currentBinary.close();
             currentBinary = null;
         }
         error = null;
-        if(ws != null) {
+        if (ws != null) {
             ws.sendClose(102, "Reconnecting");
         }
         connectionLatch = new CountDownLatch(1);
@@ -183,14 +183,14 @@ public class Client {
             builder.header("Authorization", "Bearer " + apiKey);
         }
         builder.buildAsync(uri, new Listener()).whenCompleteAsync((socket, error) -> {
-            if(error == null) {
-                        this.socket = socket;
-                    } else {
-                        this.error = error;
-                    }
-                    connectionLatch.countDown();
-                    connectionLatch = null;
-                });
+            if (error == null) {
+                this.socket = socket;
+            } else {
+                this.error = error;
+            }
+            connectionLatch.countDown();
+            connectionLatch = null;
+        });
     }
 
     /**
@@ -199,7 +199,7 @@ public class Client {
      * @return Error or null if in any error state.
      */
     public Throwable getError() {
-        if(connectionLatch != null) {
+        if (connectionLatch != null) {
             try {
                 connectionLatch.await();
             } catch (InterruptedException ignored) {
@@ -208,8 +208,20 @@ public class Client {
         return error;
     }
 
+
     /**
-     * Login method. This is the first method to be called.
+     * Login method. One of the login methods should be called first. This method is used when an API key is used to
+     * connect.
+     *
+     * @param clientID Client ID.
+     * @return An empty string is returned if the process is successful. Otherwise, an error message is returned.
+     */
+    public String login(String clientID) {
+       return login(clientID, null);
+    }
+
+    /**
+     * Login method. One of the login methods should be called first.
      *
      * @param username Username.
      * @param password Password.
@@ -222,10 +234,15 @@ public class Client {
         if (username == null || username.isBlank()) {
             return "Username can't be empty";
         }
+        if(apiKey != null && password != null) {
+            password = null;
+        }
         Map<String , Object> map = new HashMap<>();
         map.put("command", "login");
         map.put("user", username);
-        map.put("password", password == null ? "" : password);
+        if(password != null) {
+            map.put("password", password);
+        }
         map.put("version", 1);
         map.put("deviceWidth", deviceWidth);
         map.put("deviceHeight", deviceHeight);
