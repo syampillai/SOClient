@@ -11,11 +11,11 @@
   </parent>
 
   <properties>
-    <so-common-version>6.0.4</so-common-version>
+    <so-common-version>6.0.8</so-common-version>
   </properties>
 
   <artifactId>so-client</artifactId>
-  <version>3.1.1</version>
+  <version>3.1.2</version>
   <packaging>jar</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>
