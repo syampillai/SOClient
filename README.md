@@ -4,7 +4,7 @@ SO platform is an object-oriented framework for developing enterprise Java appli
 back-end. Developers typically write "data classes" (classes that represent tables in the database) and
 "logic classes" (classes implementing web UI, reporting and processing logic). All such developer-defined classes are
 stored in the database itself like any other business data. Logic classes can be attached to "menu options" of the
-application and the logic executes when the menu option is selected by the end-user.  
+application, and the logic executes when the menu option is selected by the end-user.  
 
 ## Features
 
@@ -16,17 +16,8 @@ Include this in the dependencies section of your POM file:
   <dependency>
     <groupId>com.storedobject</groupId>
     <artifactId>so-client</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.3</version>
   </dependency>
-```
-Also, include this in your repositories section:
-```xml
-<repositories>
-    <repository>
-        <id>so-maven</id>
-        <url>https://storedobject.com/maven</url>
-    </repository>
-</repositories>
 ```
 
 ## Usage
