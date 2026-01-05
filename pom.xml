@@ -7,19 +7,20 @@
   <parent>
     <groupId>com.storedobject</groupId>
     <artifactId>so-pom21</artifactId>
-    <version>1.1.12</version>
+    <version>1.1.13</version>
   </parent>
 
   <properties>
     <so-name>SOClient</so-name>
-    <so-common-version>6.1.0</so-common-version>
+    <so-common-version>6.1.1</so-common-version>
   </properties>
 
+  <groupId>com.storedobject</groupId>
   <artifactId>so-client</artifactId>
-  <version>3.1.3</version>
+  <version>3.1.4</version>
   <packaging>jar</packaging>
 
-  <name>${project.groupId}:${project.artifactId}</name>
+  <name>SO Client</name>
   <description>Java SO Client for connecting to SO Platform</description>
   <url>https://github.com/syampillai/${so-name}</url>
 
