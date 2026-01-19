@@ -195,6 +195,11 @@ public class Client {
         });
     }
 
+    /**
+     * Sets the API version to be used.
+     *
+     * @param apiVersion the version of the API to be set
+     */
     public void setApiVersion(int apiVersion) {
         this.apiVersion = apiVersion;
     }
