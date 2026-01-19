@@ -5,7 +5,6 @@ import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
 import com.storedobject.common.SOException;
 
-import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
