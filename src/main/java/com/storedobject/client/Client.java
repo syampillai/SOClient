@@ -35,6 +35,7 @@ public class Client {
     private final String apiKey;
     private Throwable error = null;
     private final List<String> responses = new ArrayList<>();
+    private int apiVersion = 1;
     /**
      * Error message when not connected.
      */
@@ -42,6 +43,7 @@ public class Client {
     private volatile BufferedStream currentBinary;
     private final Timer pingTimer;
     private long lastCommandAt = 0;
+    private String otpEmail = "";
 
     /**
      * Constructor that defines a secured connection.
@@ -193,6 +195,10 @@ public class Client {
         });
     }
 
+    public void setApiVersion(int apiVersion) {
+        this.apiVersion = apiVersion;
+    }
+
     /**
      * Get the current error, if any.
      *
@@ -243,7 +249,7 @@ public class Client {
         if(password != null) {
             map.put("password", password);
         }
-        map.put("version", 1);
+        map.put("version", apiVersion);
         map.put("deviceWidth", deviceWidth);
         map.put("deviceHeight", deviceHeight);
         session = "";
@@ -252,6 +258,38 @@ public class Client {
             case "OK" -> {
                 this.username = username;
                 this.password = password;
+                this.session = json.getString("session");
+                return "";
+            }
+            case "ERROR" -> {
+                return json.getString("message");
+            }
+        }
+        return "Protocol error";
+    }
+
+    public String login(int emailOTP, int mobileOTP) {
+        if(!this.username.isEmpty()) {
+            return "Already logged in";
+        }
+        if (otpEmail.isEmpty() || session.isEmpty()) {
+            return "OTP was not generated";
+        }
+        Map<String , Object> map = new HashMap<>();
+        map.put("command", "otp");
+        map.put("action", "login");
+        map.put("session", session);
+        map.put("continue", true);
+        map.put("emailOTP", emailOTP);
+        map.put("mobileOTP", mobileOTP);
+        map.put("version", apiVersion);
+        map.put("deviceWidth", deviceWidth);
+        map.put("deviceHeight", deviceHeight);
+        JSON json = post(map);
+        switch (json.getString("status")) {
+            case "OK" -> {
+                this.username = otpEmail;
+                this.password = json.getString("secret");
                 this.session = json.getString("session");
                 return "";
             }
@@ -314,6 +352,17 @@ public class Client {
             }
         }
         return "Protocol error";
+    }
+
+    public JSON otp(String email, String mobile) {
+        otpEmail = email;
+        Map<String, Object> map = new HashMap<>();
+        map.put("email", email);
+        map.put("mobile", mobile);
+        map.put("action", "init");
+        JSON r = command("otp", map);
+        session = r.getString("session");
+        return r;
     }
 
     /**
@@ -411,7 +460,14 @@ public class Client {
     }
 
     private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState) {
-        if (!"register".equals(command) && (username.isEmpty() || session.isEmpty())) {
+        boolean sessionRequired = true;
+        if (command.equals("register") || command.equals("otp")) {
+            Object action = attributes.get("action");
+            if (action instanceof String a) {
+                sessionRequired = !a.equals("init");
+            }
+        }
+        if (sessionRequired && (username.isEmpty() || session.isEmpty())) {
             return error(0, "Not logged in");
         }
         if(socket == null) {
@@ -423,7 +479,7 @@ public class Client {
                     return error(2, "Invalid command");
             }
         }
-        if(!session.isEmpty()) {
+        if(sessionRequired) {
             attributes.put("session", session);
         }
         attributes.put("command", command);
