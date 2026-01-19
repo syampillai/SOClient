@@ -5,6 +5,7 @@ import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
 import com.storedobject.common.SOException;
 
+import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -210,15 +211,18 @@ public class Client {
      * @return Error or null if in any error state.
      */
     public Throwable getError() {
+        waitForConnection();
+        return error;
+    }
+
+    private void waitForConnection() {
         if (connectionLatch != null) {
             try {
                 connectionLatch.await();
             } catch (InterruptedException ignored) {
             }
         }
-        return error;
     }
-
 
     /**
      * Login method. One of the login methods should be called first. This method is used when an API key is used to
@@ -239,6 +243,9 @@ public class Client {
      * @return An empty string is returned if the process is successful. Otherwise, an error message is returned.
      */
     public String login(String username, String password) {
+        if(getError() != null) {
+            return NOT_CONNECTED;
+        }
         if(!this.username.isEmpty()) {
             return "Already logged in";
         }
@@ -493,6 +500,9 @@ public class Client {
         }
         if (sessionRequired && (username.isEmpty() || session.isEmpty())) {
             return error(0, "Not logged in");
+        }
+        if(socket == null) {
+            waitForConnection();
         }
         if(socket == null) {
             return error(1, NOT_CONNECTED);
