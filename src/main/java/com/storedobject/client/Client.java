@@ -273,6 +273,18 @@ public class Client {
         return "Protocol error";
     }
 
+    /**
+     * Performs user login operation based on the provided email and mobile OTPs.
+     *
+     * @param emailOTP The one-time password sent to the user's email address.
+     * @param mobileOTP The one-time password sent to the user's mobile number.
+     * @return A string indicating the result of the login operation. Possible return values are:
+     *         "Already logged in" if the user is already logged in,
+     *         "OTP was not generated" if session or email OTP is invalid,
+     *         an empty string if login is successful,
+     *         a specific error message if login fails,
+     *         or "Protocol error" if an unknown response status is received.
+     */
     public String login(int emailOTP, int mobileOTP) {
         if(!this.username.isEmpty()) {
             return "Already logged in";
@@ -359,6 +371,13 @@ public class Client {
         return "Protocol error";
     }
 
+    /**
+     * Generates and initiates an OTP (One-Time Password) process for the provided email and mobile number.
+     *
+     * @param email the email address to which the OTP is linked
+     * @param mobile the mobile number to which the OTP corresponds
+     * @return a JSON object containing the response from the OTP command, including session details
+     */
     public JSON otp(String email, String mobile) {
         otpEmail = email;
         Map<String, Object> map = new HashMap<>();
