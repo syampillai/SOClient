@@ -4,11 +4,13 @@ import com.storedobject.client.Client;
 import com.storedobject.common.IO;
 import com.storedobject.common.JSON;
 import com.storedobject.common.StringList;
+import com.storedobject.common.StringUtility;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * A test program to test various features of the {@link Client}.
@@ -17,7 +19,85 @@ import java.util.Objects;
  */
 public class Test {
 
-    public static void main(String[] args) throws IOException {
+    private static final String HOST = "sodev.saasvaap.com";
+    private static final String APP = "aerotrade";
+
+    public static void main(String[] args) {
+        tester("Login", Test::login);
+        tester("Register OTP", Test::registerOTP);
+        tester("OTP Login", Test::otpLogin);
+    }
+
+    private static void tester(String name, Function<Client, Boolean> clientConsumer) {
+        System.out.println("Testing " + name + "...");
+        Client client = new Client(HOST, APP);
+        Throwable error = client.getError();
+        if (error != null) {
+            System.err.println(name + " failed: " + error.getMessage());
+            error.printStackTrace();
+            return;
+        }
+        Boolean result = clientConsumer.apply(client);
+        client.close();
+        System.out.println(name + " " + (result != null && result? "passed" : "failed"));
+    }
+
+    private static boolean login(Client client) {
+        return client.login("xxx", "SecretPassword").isEmpty();
+    }
+
+    private static boolean registerOTP(Client client) {
+        String email = "syam@engravgroup.com";
+        Map<String, Object> m = new HashMap<>();
+        m.put("action", "otp");
+        m.put("email", email);
+        JSON json = client.command("register", m);
+        System.out.println("Response: " + json.toPrettyString());
+        if(!"OK".equals(json.getString("status"))) {
+            return false;
+        }
+        long otp = inputOTP("Register with OTP " + json.getString("prefixEmail"));
+        if(otp == 0) {
+            return false;
+        }
+        m = new HashMap<>();
+        m.put("action", "logic");
+        m.put("emailOTP", otp);
+        json = client.command("register", m, true);
+        System.out.println("Response: " + json.toPrettyString());
+        return "OK".equals(json.getString("status"));
+    }
+
+    private static boolean otpLogin(Client client) {
+        String email = "syam.s.pillai@gmail.com";
+        JSON json = client.otp(email);
+        System.out.println("Response: " + json.toPrettyString());
+        if(!"OK".equals(json.getString("status"))) {
+            return false;
+        }
+        long otp = inputOTP("Register with OTP " + json.getString("prefixEmail"));
+        if(otp == 0) {
+            return false;
+        }
+        return "".equals(client.login(otp));
+    }
+
+    private static long inputOTP(String prompt) {
+        System.out.print(prompt + " ");
+        String input = System.console().readLine();
+        if(input == null) {
+            System.out.println("Abandoned");
+            return 0;
+        }
+        if(!StringUtility.isDigit(input)) {
+            System.out.println("Invalid OTP");
+            return 0;
+        }
+        return Long.parseLong(input);
+    }
+
+
+    public static void oldTests() throws IOException {
         Client client;
         client = new Client("storedobject.com", "training");
         Throwable error = client.getError();
@@ -25,7 +105,7 @@ public class Test {
             error.printStackTrace();
             return;
         }
-        String status = client.login("syam", "Welcome2System$");
+        String status = client.login("syam", "SecretPassword");
         if (status.isEmpty()) {
 
             print("Logged in successfully");

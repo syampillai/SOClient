@@ -280,6 +280,16 @@ public class Client {
     }
 
     /**
+     * Authenticates a user based on the provided email OTP (One-Time Password).
+     *
+     * @param emailOTP the one-time password sent to the user's email for authentication
+     * @return a string indicating the result of the login process, such as a success message, session token, or error message
+     */
+    public String login(long emailOTP) {
+        return login(emailOTP, 0);
+    }
+
+    /**
      * Performs user login operation based on the provided email and mobile OTPs.
      *
      * @param emailOTP The one-time password sent to the user's email address.
@@ -291,7 +301,7 @@ public class Client {
      *         a specific error message if login fails,
      *         or "Protocol error" if an unknown response status is received.
      */
-    public String login(int emailOTP, int mobileOTP) {
+    public String login(long emailOTP, long mobileOTP) {
         if(!this.username.isEmpty()) {
             return "Already logged in";
         }
@@ -340,7 +350,7 @@ public class Client {
     /**
      * Close this instance. This should be invoked if the {@link Client} is no more required.
      * If you try to use this instance afterward, it may give unexpected results.
-     * <p>Note: This is equivalent to the {@link #logout()} method.</p>
+     * <p>Note: This is an equivalent to the {@link #logout()} method.</p>
      */
     public void close() {
         logout();
@@ -378,6 +388,16 @@ public class Client {
     }
 
     /**
+     * Generates a one-time password (OTP) for the specified email address.
+     *
+     * @param email The email address for which the OTP is to be generated. It must not be null or empty.
+     * @return A JSON object containing the generated OTP and related details.
+     */
+    public JSON otp(String email) {
+        return otp(email, "");
+    }
+
+    /**
      * Generates and initiates an OTP (One-Time Password) process for the provided email and mobile number.
      *
      * @param email the email address to which the OTP is linked
@@ -390,9 +410,7 @@ public class Client {
         map.put("email", email);
         map.put("mobile", mobile);
         map.put("action", "init");
-        JSON r = command("otp", map);
-        session = r.getString("session");
-        return r;
+        return command("otp", map);
     }
 
     /**
@@ -490,15 +508,27 @@ public class Client {
     }
 
     private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState) {
-        boolean sessionRequired = true;
-        if (command.equals("register") || command.equals("otp")) {
-            Object action = attributes.get("action");
-            if (action instanceof String a) {
-                sessionRequired = !a.equals("init");
+        return command(command, attributes, checkCommand, preserveServerState, true);
+    }
+
+    private JSON command(String command, Map<String, Object> attributes, boolean checkCommand, boolean preserveServerState, boolean loginRequired) {
+        boolean sessionRequired = loginRequired;
+        if (sessionRequired && command.equals("register")) {
+            loginRequired = false;
+            String action = action(attributes);
+            sessionRequired = !(action.equals("init") || action.equals("otp"));
+        } else if (sessionRequired && command.equals("otp")) {
+            String action = action(attributes);
+            sessionRequired = !action.equals("init");
+            if (sessionRequired) {
+                loginRequired = !action.equals("verify");
             }
         }
-        if (sessionRequired && (username.isEmpty() || session.isEmpty())) {
-            return error(0, "Not logged in");
+        if (!sessionRequired) {
+            setOTPEmail(attributes);
+        }
+        if (sessionRequired && ((loginRequired && username.isEmpty()) || session.isEmpty())) {
+            return error(0,"Not logged in");
         }
         if(socket == null) {
             waitForConnection();
@@ -529,8 +559,22 @@ public class Client {
                 return  error(3,"Can't re-login. Reason: " + status);
             }
             return command(command, attributes, false);
+        } else if(!sessionRequired) {
+            session = r.getString("session");
         }
         return r;
+    }
+
+    private String action(Map<String, Object> attributes) {
+        Object action = attributes.get("action");
+        return action instanceof String a ? a : "";
+    }
+
+    private void setOTPEmail(Map<String, Object> attributes) {
+        Object email = attributes.get("email");
+        if (email instanceof String em) {
+            otpEmail = em;
+        }
     }
 
     /**
