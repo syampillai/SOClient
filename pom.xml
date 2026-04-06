@@ -12,12 +12,12 @@
 
   <properties>
     <so-name>SOClient</so-name>
-    <so-common-version>6.1.5</so-common-version>
+    <so-common-version>6.1.6</so-common-version>
   </properties>
 
   <groupId>com.storedobject</groupId>
   <artifactId>so-client</artifactId>
-  <version>3.2.4</version>
+  <version>3.2.5</version>
   <packaging>jar</packaging>
 
   <name>SO Client</name>
