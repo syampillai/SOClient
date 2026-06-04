@@ -373,7 +373,7 @@ public class Client {
         }
         Map<String , Object> map = new HashMap<>();
         map.put("oldPassword", password);
-        map.put("password", newPassword == null ? "" : newPassword);
+        map.put("newPassword", newPassword == null ? "" : newPassword);
         JSON json = command("changePassword", map);
         switch (json.getString("status")) {
             case "OK" -> {

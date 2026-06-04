@@ -20,12 +20,13 @@ import java.util.function.Function;
 public class Test {
 
     private static final String HOST = "sodev.saasvaap.com";
-    private static final String APP = "aerotrade";
+    private static final String APP = "aerotradedev";
 
     public static void main(String[] args) {
-        tester("Login", Test::login);
-        tester("Register OTP", Test::registerOTP);
-        tester("OTP Login", Test::otpLogin);
+        //tester("Login", Test::login);
+        tester("Change Password", Test::changePassword);
+        //tester("Register OTP", Test::registerOTP);
+        //tester("OTP Login", Test::otpLogin);
     }
 
     private static void tester(String name, Function<Client, Boolean> clientConsumer) {
@@ -43,7 +44,14 @@ public class Test {
     }
 
     private static boolean login(Client client) {
-        return client.login("xxx", "SecretPassword").isEmpty();
+        return client.login("a@xxx.com", "Welcome2System$").isEmpty();
+    }
+
+    private static boolean changePassword(Client client) {
+        if(client.login("a@xxx.com", "Welcome2System$").isEmpty()) {
+            return client.changePassword("Welcome2System$", "NewPass@1234").isEmpty();
+        }
+        return false;
     }
 
     private static boolean registerOTP(Client client) {
